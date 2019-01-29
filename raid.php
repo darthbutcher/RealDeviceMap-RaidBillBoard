@@ -3,6 +3,12 @@ $dbhost = "hostname/ip";
 $dbuser = "rdmuser";
 $dbpass = "password";
 $dbname = "rdmdb";
+$dbtimezone = "UTC";
+$displaytimezone = "UTC";
+
+function getFormattedTimeFromTimestamp( $columnName, $dbtimezone, $displaytimezone ) {
+	return "time_format(convert_tz(from_unixtime($columnName), '$dbtimezone', '$displaytimezone'), '%h:%i:%s %p')";
+}
 
 // Establish connection to database
 try{
@@ -15,7 +21,20 @@ try{
 // Query Database and Build Raid Billboard
 try 
 {
-    $sql = "SELECT time_format(from_unixtime(raid_battle_timestamp), '%h:%i:%s %p'), time_format(from_unixtime(raid_end_timestamp),'%h:%i:%s %p'), raid_level, pokedex.name, gym.name from gym inner join pokedex on gym.raid_pokemon_id = pokedex.pokemon_id where raid_pokemon_id is not null && gym.name is not null order by raid_end_timestamp";   
+    $sql = "
+SELECT
+    " . getFormattedTimeFromTimestamp( 'raid_battle_timestamp', $dbtimezone, $displaytimezone ) . ",
+    " . getFormattedTimeFromTimestamp( 'raid_end_timestamp', $dbtimezone, $displaytimezone ) . ",
+    raid_level,
+    pokedex.name,
+    gym.name
+FROM gym
+    INNER JOIN pokedex
+        ON gym.raid_pokemon_id = pokedex.pokemon_id
+WHERE raid_pokemon_id IS NOT NULL
+    && gym.name IS NOT NULL
+ORDER BY raid_end_timestamp
+";
         $result = $pdo->query($sql);
         if($result->rowCount() > 0){
             echo "<table border='1';>";
